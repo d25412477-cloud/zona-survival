@@ -1,0 +1,134 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ЗОНА: Последний сталкер</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;overflow:hidden;background:#101510;color:white;font-family:Arial}
+#game{position:fixed;inset:0}
+#hud{position:fixed;top:12px;left:12px;z-index:2;background:#101510bb;padding:12px;border:1px solid #64745a;border-radius:8px}
+#hud div{margin:5px 0}
+#message{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#111c;padding:12px;border-radius:8px;z-index:3}
+#controls{position:fixed;bottom:20px;left:15px;right:15px;display:flex;justify-content:space-between;z-index:4}
+.pad{display:grid;grid-template-columns:repeat(3,48px);gap:4px}
+button{background:#303b2d;color:white;border:1px solid #879879;border-radius:8px;padding:12px;font-size:18px}
+#look{width:110px;height:110px;border:1px solid #879879;border-radius:50%;background:#303b2d88;touch-action:none}
+</style>
+</head>
+<body>
+<div id="game"></div>
+<div id="hud">
+<b>ЗОНА: Последний сталкер</b>
+<div>❤️ Здоровье: <span id="hp">100</span></div>
+<div>💧 Вода: <span id="water">100</span></div>
+<div>🍞 Еда: <span id="food">100</span></div>
+<div>📍 Локация: Лесная окраина</div>
+</div>
+<div id="message">Ты просыпаешься на окраине Зоны...</div>
+<div id="controls">
+<div class="pad">
+<span></span><button id="forward">▲</button><span></span>
+<button id="left">◀</button><button id="back">▼</button><button id="right">▶</button>
+</div>
+<div id="look"></div>
+</div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x89917c);
+scene.fog = new THREE.Fog(0x89917c, 15, 65);
+
+const camera = new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,1000);
+camera.position.set(0,1.7,5);
+
+const renderer = new THREE.WebGLRenderer({antialias:false});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(1);
+document.getElementById('game').appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xc7d2bd,0x343c2b,2));
+const sun = new THREE.DirectionalLight(0xffffff,1.5);
+sun.position.set(-5,10,5);
+scene.add(sun);
+
+const ground = new THREE.Mesh(
+new THREE.PlaneGeometry(200,200),
+new THREE.MeshStandardMaterial({color:0x414936})
+);
+ground.rotation.x=-Math.PI/2;
+scene.add(ground);
+
+function tree(x,z){
+const trunk=new THREE.Mesh(
+new THREE.CylinderGeometry(.15,.25,3,5),
+new THREE.MeshStandardMaterial({color:0x40372b})
+);
+trunk.position.set(x,1.5,z);
+scene.add(trunk);
+const leaves=new THREE.Mesh(
+new THREE.ConeGeometry(1.4,4,6),
+new THREE.MeshStandardMaterial({color:0x34432d})
+);
+leaves.position.set(x,4,z);
+scene.add(leaves);
+}
+for(let i=0;i<75;i++){
+const x=(Math.random()-.5)*70;
+const z=(Math.random()-.5)*70;
+if(Math.abs(x)>3 || Math.abs(z)>3)tree(x,z);
+}
+
+const hut=new THREE.Mesh(
+new THREE.BoxGeometry(5,3,4),
+new THREE.MeshStandardMaterial({color:0x655640})
+);
+hut.position.set(-8,1.5,-10);
+scene.add(hut);
+
+camera.rotation.order='YXZ';
+let yaw=0,pitch=0;
+const keys={};
+function bind(id,key){
+const b=document.getElementById(id);
+b.onpointerdown=e=>{keys[key]=true;b.setPointerCapture(e.pointerId)};
+b.onpointerup=b.onpointercancel=()=>keys[key]=false;
+}
+bind('forward','w');bind('back','s');bind('left','a');bind('right','d');
+
+let lastX=0,lastY=0;
+const look=document.getElementById('look');
+look.onpointerdown=e=>{lastX=e.clientX;lastY=e.clientY;look.setPointerCapture(e.pointerId)};
+look.onpointermove=e=>{
+if(!e.buttons)return;
+yaw-=(e.clientX-lastX)*.006;
+pitch-=(e.clientY-lastY)*.006;
+pitch=Math.max(-1.2,Math.min(1.2,pitch));
+lastX=e.clientX;lastY=e.clientY;
+};
+
+function animate(){
+requestAnimationFrame(animate);
+const speed=.09;
+if(keys.w)camera.translateZ(-speed);
+if(keys.s)camera.translateZ(speed);
+if(keys.a)camera.translateX(-speed);
+if(keys.d)camera.translateX(speed);
+camera.rotation.y=yaw;
+camera.rotation.x=pitch;
+camera.position.y=1.7;
+renderer.render(scene,camera);
+}
+animate();
+
+onresize=()=>{
+camera.aspect=innerWidth/innerHeight;
+camera.updateProjectionMatrix();
+renderer.setSize(innerWidth,innerHeight);
+};
+</script>
+</body>
+</html>
